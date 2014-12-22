@@ -48,7 +48,7 @@ func parseArgs() map[string]string {
 	flag.Parse()
 
 	if pictDir == "" {
-		fmt.Printf("usage: binggo --pictdir=DIRECTORY_PATH_FOR_DOWNLOAD\n")
+		fmt.Printf("usage: binggo --pictdir=/path/to/downloads\n")
 		return nil
 	}
 	if pictDir[:2] == "~/" {
