@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"image"
-	"image/jpeg"
-	"image/png"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -113,7 +110,7 @@ func downloadPicture(url string, dirName string) {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
-	img, format, err := image.Decode(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,12 +122,7 @@ func downloadPicture(url string, dirName string) {
 		log.Fatal(err)
 	}
 	defer out.Close()
-	if format == "jpeg" {
-		jpeg.Encode(out, img, &jpeg.Options{jpeg.DefaultQuality})
-	}
-	if format == "png" {
-		png.Encode(out, img)
-	}
+	out.Write(body)
 }
 
 type PictFiles []os.FileInfo
