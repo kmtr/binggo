@@ -15,37 +15,43 @@ import (
 	"strings"
 )
 
-const PICT_DIR = "PICT_DIR"
+const (
+	ARG_PICT_DIR = "pictdir"
+	ARG_DISPLAY  = "display"
+	ALL_DISPLAY  = 0
+)
+
+type Args struct {
+	pictDir string
+	display int
+}
 
 func main() {
-	params := parseArgs()
-	if params == nil {
-		return
-	}
-	pictDirName, err := validatePictDir(params[PICT_DIR])
-	if err != nil {
-		log.Fatal(err)
-	}
+	args := parseArgs()
 	urls, err := getPictureUrls()
 	if err != nil {
 		log.Fatal(err)
 	}
+	pictDirName := args.pictDir
 	for _, url := range urls {
 		downloadPicture(url, pictDirName)
 	}
 	files := getWallpaperFile(pictDirName)
 	sort.Sort(files)
-	changeWallpaper(pictDirName, files[0])
+	changeWallpaper(args.display, pictDirName, files[0])
 }
 
-func parseArgs() map[string]string {
+func parseArgs() *Args {
 	var pictDir string
-	flag.StringVar(&pictDir, "pictdir", "", "directory path for download")
+	flag.StringVar(&pictDir, ARG_PICT_DIR, "", "directory path for download")
+	var display int
+	flag.IntVar(&display, ARG_DISPLAY, ALL_DISPLAY, "target display number.")
 
 	flag.Parse()
 
 	if pictDir == "" {
 		fmt.Printf("usage: binggo --pictdir=/path/to/downloads\n")
+		fmt.Printf("usage: binggo --pictdir=/path/to/downloads --display=1\n")
 		return nil
 	}
 	if pictDir[:2] == "~/" {
@@ -55,10 +61,16 @@ func parseArgs() map[string]string {
 		}
 		pictDir = strings.Replace(pictDir, "~/", usr.HomeDir+"/", 1)
 	}
-	params := map[string]string{
-		PICT_DIR: pictDir,
+	pictDir, err := validatePictDir(pictDir)
+	if err != nil {
+		log.Fatal(err)
 	}
-	return params
+
+	args := &Args{
+		pictDir: pictDir,
+		display: display,
+	}
+	return args
 }
 
 // validate pict directory path
@@ -150,14 +162,21 @@ func getWallpaperFile(pictDir string) PictFiles {
 }
 
 // change wallpaper
-func changeWallpaper(pictDir string, f os.FileInfo) {
+func changeWallpaper(displayNumber int, pictDir string, f os.FileInfo) {
 	script := `
-	tell application "Finder"
-	set desktop picture to POSIX file "%s/%s"
+	tell application "System Events"
+	 set desktopCount to count of desktops
+	 repeat with desktopNumber from 1 to desktopCount
+	  tell desktop desktopNumber
+	   if desktopNumber is %d or %d less than 1 then
+		 set picture to "%s/%s"
+		end if
+	  end tell
+	 end repeat
 	end tell
 	`
 	cmd := exec.Command("osascript", "-e",
-		fmt.Sprintf(script, pictDir, f.Name()))
+		fmt.Sprintf(script, displayNumber, displayNumber, pictDir, f.Name()))
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
