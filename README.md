@@ -13,3 +13,7 @@ Usage
 ------
 
 `binggo --pictdir=/path/to/downloads`
+
+If you want to change wallpaper of 2nd display, you will add "--display=2".
+
+`binggo --pictdir=/path/to/downloads --display=2`
