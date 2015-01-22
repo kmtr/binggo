@@ -28,6 +28,9 @@ type Args struct {
 
 func main() {
 	args := parseArgs()
+	if args == nil {
+		os.Exit(0)
+	}
 	urls, err := getPictureUrls()
 	if err != nil {
 		log.Fatal(err)
