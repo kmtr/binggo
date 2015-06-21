@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -27,53 +28,71 @@ type Args struct {
 }
 
 func main() {
-	args := parseArgs()
-	if args == nil {
-		os.Exit(0)
+	os.Exit(run())
+}
+
+func run() int {
+	args, err := parseArgs()
+	if err != nil {
+		log.Print(err)
+		fmt.Printf("usage: binggo --pictdir /path/to/downloads\n")
+		fmt.Printf("usage: binggo --pictdir /path/to/downloads --display 1\n")
+		return 1
 	}
 	urls, err := getPictureUrls()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return 2
 	}
 	pictDirName := args.pictDir
 	for _, url := range urls {
-		downloadPicture(url, pictDirName)
+		err := downloadPicture(url, pictDirName)
+		if err != nil {
+			log.Print(err)
+			return 3
+		}
 	}
-	files := getWallpaperFile(pictDirName)
+	files, err := getWallpaperFile(pictDirName)
+	if err != nil {
+		log.Print(err)
+		return 4
+	}
 	sort.Sort(files)
-	changeWallpaper(args.display, pictDirName, files[0])
+	err = changeWallpaper(args.display, pictDirName, files[0])
+	if err != nil {
+		log.Print(err)
+		return 5
+	}
+	return 0
 }
 
-func parseArgs() *Args {
+func parseArgs() (*Args, error) {
 	var pictDir string
 	flag.StringVar(&pictDir, ARG_PICT_DIR, "", "directory path for download")
 	var display int
 	flag.IntVar(&display, ARG_DISPLAY, ALL_DISPLAY, "target display number.")
-
 	flag.Parse()
 
 	if pictDir == "" {
-		fmt.Printf("usage: binggo --pictdir /path/to/downloads\n")
-		fmt.Printf("usage: binggo --pictdir /path/to/downloads --display 1\n")
-		return nil
+		return nil, errors.New("pictdir is empty")
 	}
 	if pictDir[:2] == "~/" {
 		usr, err := user.Current()
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		pictDir = strings.Replace(pictDir, "~/", usr.HomeDir+"/", 1)
 	}
 	pictDir, err := validatePictDir(pictDir)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	args := &Args{
 		pictDir: pictDir,
 		display: display,
 	}
-	return args
+	return args, err
 }
 
 // validate pict directory path
@@ -119,25 +138,26 @@ func getPictureUrls() ([]string, error) {
 }
 
 // download bing picture
-func downloadPicture(url string, dirName string) {
+func downloadPicture(url string, dirName string) error {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	splited := strings.Split(url, "/")
 	filename := splited[len(splited)-1]
 	out, err := os.Create(dirName + string(os.PathSeparator) + filename)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer out.Close()
 	out.Write(body)
+	return nil
 }
 
 type PictFiles []os.FileInfo
@@ -155,17 +175,17 @@ func (f PictFiles) Less(i, j int) bool {
 }
 
 // get wallpaper files
-func getWallpaperFile(pictDir string) PictFiles {
+func getWallpaperFile(pictDir string) (PictFiles, error) {
 	var files PictFiles
 	files, err := ioutil.ReadDir(pictDir)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return files
+	return files, nil
 }
 
 // change wallpaper
-func changeWallpaper(displayNumber int, pictDir string, f os.FileInfo) {
+func changeWallpaper(displayNumber int, pictDir string, f os.FileInfo) error {
 	script := `
 	tell application "System Events"
 	 set desktopCount to count of desktops
@@ -180,8 +200,5 @@ func changeWallpaper(displayNumber int, pictDir string, f os.FileInfo) {
 	`
 	cmd := exec.Command("osascript", "-e",
 		fmt.Sprintf(script, displayNumber, displayNumber, pictDir, f.Name()))
-	err := cmd.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
+	return cmd.Run()
 }
