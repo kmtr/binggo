@@ -53,8 +53,8 @@ func parseArgs() *Args {
 	flag.Parse()
 
 	if pictDir == "" {
-		fmt.Printf("usage: binggo --pictdir=/path/to/downloads\n")
-		fmt.Printf("usage: binggo --pictdir=/path/to/downloads --display=1\n")
+		fmt.Printf("usage: binggo --pictdir /path/to/downloads\n")
+		fmt.Printf("usage: binggo --pictdir /path/to/downloads --display 1\n")
 		return nil
 	}
 	if pictDir[:2] == "~/" {
