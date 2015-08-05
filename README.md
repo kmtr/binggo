@@ -17,3 +17,11 @@ Usage
 If you want to change wallpaper of 2nd display, you will add "--display 2".
 
 `binggo --pictdir /path/to/downloads --display 2`
+
+crontab
+--------
+
+```sh
+(crontab -l; echo "0 0 * * * /path/to/binggo --pictdir /path/to/downloads >/dev/null 2>&1") | crontab -
+```
+
