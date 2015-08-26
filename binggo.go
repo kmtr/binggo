@@ -17,11 +17,10 @@ import (
 )
 
 const (
-	ARG_PICT_DIR = "pictdir"
-	ARG_DISPLAY  = "display"
-	ALL_DISPLAY  = 0
+	displayAll = 0
 )
 
+// Args cli arguments definition
 type Args struct {
 	pictDir string
 	display int
@@ -68,9 +67,9 @@ func run() int {
 
 func parseArgs() (*Args, error) {
 	var pictDir string
-	flag.StringVar(&pictDir, ARG_PICT_DIR, "", "directory path for download")
+	flag.StringVar(&pictDir, "pictdir", "", "directory path for download")
 	var display int
-	flag.IntVar(&display, ARG_DISPLAY, ALL_DISPLAY, "target display number.")
+	flag.IntVar(&display, "display", displayAll, "target display number.")
 	flag.Parse()
 
 	if pictDir == "" {
@@ -160,21 +159,25 @@ func downloadPicture(url string, dirName string) error {
 	return nil
 }
 
+// PictFiles are wallpaper pictures
 type PictFiles []os.FileInfo
 
+// Len for sort.Interface
 func (files PictFiles) Len() int {
 	return len(files)
 }
 
+// Swap for sort.Interface
 func (files PictFiles) Swap(i, j int) {
 	files[i], files[j] = files[j], files[i]
 }
 
-func (f PictFiles) Less(i, j int) bool {
-	return f[i].ModTime().UnixNano() > f[j].ModTime().UnixNano()
+// Less for sort.Interface
+func (files PictFiles) Less(i, j int) bool {
+	return files[i].ModTime().UnixNano() > files[j].ModTime().UnixNano()
 }
 
-// get wallpaper files
+// getWallpaperFiles collects wallpaper picture file
 func getWallpaperFile(pictDir string) (PictFiles, error) {
 	var files PictFiles
 	files, err := ioutil.ReadDir(pictDir)
@@ -184,7 +187,7 @@ func getWallpaperFile(pictDir string) (PictFiles, error) {
 	return files, nil
 }
 
-// change wallpaper
+// changeWallpaper runs wallpaper change AppleScript
 func changeWallpaper(displayNumber int, pictDir string, f os.FileInfo) error {
 	script := `
 	tell application "System Events"
