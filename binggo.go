@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
 	"regexp"
@@ -36,6 +35,7 @@ func run() int {
 		log.Print(err)
 		fmt.Printf("usage: binggo --pictdir /path/to/downloads\n")
 		fmt.Printf("usage: binggo --pictdir /path/to/downloads --display 1\n")
+		fmt.Printf("usage: --display option is available only on macOS\n")
 		return 1
 	}
 	urls, err := getPictureUrls()
@@ -185,23 +185,4 @@ func getWallpaperFile(pictDir string) (PictFiles, error) {
 		return nil, err
 	}
 	return files, nil
-}
-
-// changeWallpaper runs wallpaper change AppleScript
-func changeWallpaper(displayNumber int, pictDir string, f os.FileInfo) error {
-	script := `
-	tell application "System Events"
-		set desktopCount to count of desktops
-		repeat with desktopNumber from 1 to desktopCount
-			tell desktop desktopNumber
-				if desktopNumber is %d or %d less than 1 then
-					set picture to "%s/%s"
-				end if
-			end tell
-		end repeat
-	end tell
-	`
-	cmd := exec.Command("osascript", "-e",
-		fmt.Sprintf(script, displayNumber, displayNumber, pictDir, f.Name()))
-	return cmd.Run()
 }
